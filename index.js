@@ -10,6 +10,8 @@ import MongoStore from "connect-mongo";
 import userRouter from "./routes/user_route.js";
 import { restartServer } from "./restart_server.js";
 import { profileRouter } from "./routes/profile_route.js";
+import { contentRouter } from "./routes/content_route.js";
+import { timeCapsuleRouter } from "./routes/timecapsule_route.js";
 
 
 
@@ -53,6 +55,8 @@ app.use(session({
 // Use routes
 app.use("/api/v1", userRouter);
 app.use('/api/v1', profileRouter);
+app.use("api/v1", contentRouter);
+app.use("api/v1", timeCapsuleRouter)
 
 
 
