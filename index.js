@@ -46,6 +46,10 @@ app.use(session({
 app.use("/api/v1", userRouter);
 app.use('/api/v1', profileRouter);
 
+app.get("/api/v1/health", (req, res) => {
+    res.json({ status: "UP" });
+  });
+
 
 //  handle all documentation
 expressOasGenerator.handleRequests();
