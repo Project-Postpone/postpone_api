@@ -16,6 +16,16 @@ import { profileRouter } from "./routes/profile_route.js";
 //  instantiate express
 const app = express();
 
+
+// Use middlewares
+app.use(cors({ credentials: true, origin: '*' }));
+app.use(express.static("upload"));
+
+
+app.get("/api/v1/health", (req, res) => {
+    res.json({ status: "UP" });
+  });
+
 expressOasGenerator.handleResponses(app, {
     alwaysServeDocs: true,
     tags: ['users', "profiles"],
@@ -26,12 +36,10 @@ expressOasGenerator.handleResponses(app, {
 // dbConnection();
 
 
-// Use middlewares
-app.use(cors({ credentials: true, origin: '*' }));
-app.use(express.static("upload"));
 
 
 app.use(express.json());
+
 // use session
 app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -46,9 +54,7 @@ app.use(session({
 app.use("/api/v1", userRouter);
 app.use('/api/v1', profileRouter);
 
-app.get("/api/v1/health", (req, res) => {
-    res.json({ status: "UP" });
-  });
+
 
 
 //  handle all documentation
