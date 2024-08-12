@@ -8,40 +8,51 @@ export const createContent = async (req, res) => {
       ...req.body,
       contentData: req.files?.contentData[0].filename
     });
+    console.log("value test");
 
     if (error) {
       console.log("error noticed!")
       return res.status(400).send(error.details[0].message)
     };
+    console.log("error test");
 
     const userId = req.session?.user?.id || req?.user?.id; 
+    console.log("req?");
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).send('User not found');
     }
-  
+      console.log("!user test");
+
     // Create or update the user content
     const content = await Content.findOneAndUpdate(
       { user: userId }, // Find by user ID
       value,
       { new: true, upsert: true } 
     );
+    console.log("content test");
 
     const contentData = {};
+    console.log("empty array test");
 
     switch (contentType) {
       case "image":
         contentData.image = req.file.buffer.toString("base64");
+        console.log("image test");
         break;
       case "text":
         contentData.text = req.body.text; // Assuming text content is sent in the request body
+        console.log("text test");
         break;
       case "audio":
         contentData.audio = req.file.buffer.toString("base64");
+        console.log("audio test");
         // Add any audio-specific metadata here, e.g., duration, format
         break;
       case "video":
         contentData.video = req.file.buffer.toString("base64");
+        console.log("video test");
         // Add any video-specific metadata here, e.g., dimensions, codec
         break;
       default:
@@ -70,9 +81,12 @@ export const createContent = async (req, res) => {
       metadata,
     });
 
+    console.log("create new content test");
+
     // Associate the user content with the user
     user.content = content._id;
     await user.save();
+    console.log("save content test");
 
     res.status(201).json(newContent);
     console.log("content created");
