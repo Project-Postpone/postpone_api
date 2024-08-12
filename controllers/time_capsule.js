@@ -1,18 +1,22 @@
 import { TimeCapsule } from '../models/time_capsule.js'; // Replace with your model paths
+import { User } from '../models/user_model.js';
 import timeCapsuleSchema from '../validators/time_capsule.js';
 
 
-const getTimeCapsules = async (req, res) => {
+export const getTimeCapsules = async (req, res) => {
   try {
-    const timeCapsules = await TimeCapsule.find().populate('content'); // Populate content
-    res.json(timeCapsules);
+    
+    const alltimeCapsules = await TimeCapsule.find();
+
+    res.status(200).json({ timeCapsules: alltimeCapsules });
+      
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error fetching time capsules' });
   }
 };
 
-const getTimeCapsuleById = async (req, res) => {
+export const getTimeCapsuleById = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -29,43 +33,47 @@ const getTimeCapsuleById = async (req, res) => {
   }
 };
 
-const createTimeCapsule = async (req, res) => {
-  const { title, description, scheduledDeliveryTime, recipients, content } = req.body;
+export const createTimeCapsule = async (req, res) => {
+  try{
+  
+  const { value, error} = timeCapsuleSchema.validate({...req.body});
+  if (error) {
+    return res.status(400).send(error.details[0].message)
+  };
 
-  // Validate data using Joi schema
-  const validationResult = timeCapsuleSchema.validate({ title, description, scheduledDeliveryTime, recipients, content });
-  if (validationResult.error) {
-    return res.status(400).json({ message: validationResult.error.details[0].message });
+  // Finding the user by ID
+  const userId = req.session?.user?.id || req?.user?.id; 
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).send('User not found');
   }
 
-  try {
-    // Create content objects if necessary
-    const contentObjects = content.map(async (c) => {
-      const newContent = new Content(c);
-      await newContent.save();
-      return newContent._id;
-    });
+  // Create or update the user timeCapsule
+  const timeCapsule = await TimeCapsule.findOneAndUpdate(
+    { user: userId }, // Find by user ID
+    value,
+    { new: true, upsert: true } 
+  );
 
-    const contentIds = await Promise.all(contentObjects);
+    // Associate the user timeCapsule with the user
+    user.timeCapsule = timeCapsule._id;
+    await user.save();
 
-    const newTimeCapsule = new TimeCapsule({
-      title,
-      description,
-      scheduledDeliveryTime,
-      recipients,
-      content: contentIds,
-    });
+    // Return the user timeCapsule
+    res.status(201).json({ message:"time capsule has been added.",timeCapsule
+     });
 
-    await newTimeCapsule.save();
 
-    res.status(201).json(newTimeCapsule);
+    // await timeCapsule.save();...this part is not needed
+
+    res.status(201).json(timeCapsule);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error creating time capsule' });
   }
 };
 
-const updateTimeCapsule = async (req, res) => {
+export const updateTimeCapsule = async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
@@ -85,7 +93,7 @@ const updateTimeCapsule = async (req, res) => {
   }
 };
 
-const deleteTimeCapsule = async (req, res) => {
+export const deleteTimeCapsule = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -102,4 +110,3 @@ const deleteTimeCapsule = async (req, res) => {
   }
 };
 
-export { getTimeCapsules, getTimeCapsuleById, createTimeCapsule, updateTimeCapsule, deleteTimeCapsule };

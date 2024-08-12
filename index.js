@@ -30,7 +30,7 @@ app.get("/api/v1/health", (req, res) => {
 
 expressOasGenerator.handleResponses(app, {
     alwaysServeDocs: true,
-    tags: ['users', "profiles"],
+    tags: ['users', "profiles", "content"],
     mongooseModels: mongoose.modelNames(),
 });
 

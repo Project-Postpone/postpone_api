@@ -4,6 +4,8 @@ import {toJSON} from "@reis/mongoose-to-json";
 
 
 const contentSchema = new Schema({
+  user: { type: Types.ObjectId, ref: 'User', required: true   
+  },
   contentType: {
     type: String,
     enum: ['text', 'image/jpeg', 'audio/mp3', 'video/mp4'], // Example enum values

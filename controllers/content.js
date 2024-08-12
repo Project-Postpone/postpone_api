@@ -1,64 +1,148 @@
-import { Content } from '../models/content.js';
+import { Content } from "../models/content.js";
+import { User } from "../models/user_model.js";
+import { contentSchema } from "../validators/content.js";
 
 export const createContent = async (req, res) => {
   try {
-    const { contentType, contentData, metadata } = req.body;
+    const { value, error } =  contentSchema.validate({
+      ...req.body,
+      contentData: req.files?.contentData[0].filename
+    });
 
-    const content = new Content({ contentType, contentData, metadata });
-    await content.save();
+    if (error) {
+      console.log("error noticed!")
+      return res.status(400).send(error.details[0].message)
+    };
 
-    res.status(201).json(content);
+    const userId = req.session?.user?.id || req?.user?.id; 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+  
+    // Create or update the user content
+    const content = await Content.findOneAndUpdate(
+      { user: userId }, // Find by user ID
+      value,
+      { new: true, upsert: true } 
+    );
+
+    const contentData = {};
+
+    switch (contentType) {
+      case "image":
+        contentData.image = req.file.buffer.toString("base64");
+        break;
+      case "text":
+        contentData.text = req.body.text; // Assuming text content is sent in the request body
+        break;
+      case "audio":
+        contentData.audio = req.file.buffer.toString("base64");
+        // Add any audio-specific metadata here, e.g., duration, format
+        break;
+      case "video":
+        contentData.video = req.file.buffer.toString("base64");
+        // Add any video-specific metadata here, e.g., dimensions, codec
+        break;
+      default:
+        console.log("error getting this");
+        return res.status(400).json({ message: "Invalid contentType" });
+    }
+
+    // Finding the user by ID
+    // const userId = req.session?.user?.id || req?.user?.id;
+    // const user = await User.findById(userId);
+    // if (!user) {
+    //   return res.status(404).send('User not found');
+    // }
+
+    // // Create or update the user content
+    // let content = await Content.findOneAndUpdate(
+    //   { user: userId }, // Find by user ID
+    //   value,
+    //   { new: true, upsert: true }
+    // );
+
+    // const content = new Content({ contentType, contentData, metadata });
+    const newContent = await Content.create({
+      contentType,
+      contentData,
+      metadata,
+    });
+
+    // Associate the user content with the user
+    user.content = content._id;
+    await user.save();
+
+    res.status(201).json(newContent);
+    console.log("content created");
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error creating content' });
+    console.log("not found here");
+    res.status(500).json({ message: "Error creating content" });
   }
 };
+
+
 
 export const getContentById = async (req, res) => {
   try {
     const content = await Content.findById(req.params.id);
     if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
+      return res.status(404).json({ message: "Content not found" });
     }
     res.json(content);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error fetching content' });
+    console.error("Unable to get content");
+    res.status(500).json({ message: "Error fetching content" });
   }
 };
 
 export const updateContent = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    const content = await Content.findByIdAndUpdate(id, updates, { new: true });
-
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
+    const { error, value } = contentSchema.validate(req.body);
+    if (error) {
+      return res.status(400).send(error.details[0].message);
     }
 
-    res.json(content);
+    const updatedContent = await Content.findByIdAndUpdate(
+      req.params.contentId,
+      value,
+      { new: true }
+    );
+
+    if (!updatedContent) {
+      return res.status(404).send("Content not found");
+    }
+
+    res.status(201).json({ message: "Content work has been updated", updatedContent });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error updating content' });
+    res.status(500).json({ message: "Error updating content" });
   }
 };
 
 export const deleteContent = async (req, res) => {
   try {
-    const { id } = req.params;
-    const content = await Content.findByIdAndDelete(id);
+    const deletedContent = await Content.findByIdAndDelete(req.params.ContentId);
 
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
+    if (!deletedContent) {
+      return res.status(404).send('Content not found');
     }
 
-    res.json({ message: 'Content deleted' });
+    // Remove Content from user
+    const user = await User.findById(deletedContent.user);
+    if (user) {
+      user.content = user.Content.filter(contentId => contentId.toString() !== req.params.contentId);
+      await user.save();
+    }
+
+    res.status(201).json({ content: deletedContent });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error deleting content' });
+    next(error)
+    // return res.status(500).send(error.message);
   }
 };
 
-export default { createContent, getContentById, updateContent, deleteContent };
+
