@@ -8,7 +8,7 @@ const contentSchema = new Schema({
   },
   contentType: {
     type: String,
-    enum: ['text', 'image/jpeg', 'audio/mp3', 'video/mp4'], // Example enum values
+    enum: ['text', 'image', 'audio', 'video'], // Example enum values
     required: true
   },
   contentData: {

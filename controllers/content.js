@@ -25,16 +25,16 @@ export const createContent = async (req, res) => {
     const contentData = {};
 
     switch (contentType) {
-      case "image/jpeg":
+      case "image":
         contentData.image = req.file.buffer.toString("base64");
         break;
       case "text":
         contentData.text = req.body.text; 
         break;
-      case "audio/mp4":
+      case "audio":
         contentData.audio = req.file.buffer.toString("base64");
         break;
-      case "video/mp4":
+      case "video":
         contentData.video = req.file.buffer.toString("base64");
         break;
       default:
